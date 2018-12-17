@@ -47,7 +47,7 @@ public:
 
 class NodeRpcProxy : public CryptoNote::INode {
 public:
-  NodeRpcProxy(const std::string& nodeHost, unsigned short nodePort);
+  NodeRpcProxy(const std::string& nodeHost, unsigned short nodePort, const std::string& nodePath);
   virtual ~NodeRpcProxy();
 
   virtual bool addObserver(CryptoNote::INodeObserver* observer) override;
@@ -90,6 +90,7 @@ public:
 
   const std::string m_nodeHost;
   const unsigned short m_nodePort;
+  const std::string m_nodePath;
 
 private:
   void resetInternalState();

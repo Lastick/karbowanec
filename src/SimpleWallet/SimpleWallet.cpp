@@ -131,26 +131,38 @@ const command_line::arg_descriptor<bool> arg_reset = { "reset", "Discard cache d
 const command_line::arg_descriptor< std::vector<std::string> > arg_command = { "command", "" };
 
 
-bool parseUrlAddress(const std::string& url, std::string& address, uint16_t& port) {
-  auto pos = url.find("://");
+bool parseUrlAddress(const std::string& url, std::string& address, uint16_t& port, std::string& path) {
+  size_t pos = url.find("://");
   size_t addrStart = 0;
 
   if (pos != std::string::npos) {
     addrStart = pos + 3;
   }
 
-  auto addrEnd = url.find(':', addrStart);
+  size_t addrEnd = url.find(':', addrStart);
 
   if (addrEnd != std::string::npos) {
-    auto portEnd = url.find('/', addrEnd);
-    port = Common::fromString<uint16_t>(url.substr(
-      addrEnd + 1, portEnd == std::string::npos ? std::string::npos : portEnd - addrEnd - 1));
+    size_t portEnd = url.find('/', addrEnd);
+    if (portEnd != std::string::npos){
+      portEnd = portEnd - addrEnd - 1;
+    } else {
+      portEnd = url.length() - 1;
+    }
+    port = Common::fromString<uint16_t>(url.substr(addrEnd + 1, portEnd));
   } else {
-    addrEnd = url.find('/');
+    addrEnd = url.find('/', addrStart);
+    if (addrEnd == std::string::npos) addrEnd = url.length() - 1;
     port = 80;
   }
 
   address = url.substr(addrStart, addrEnd - addrStart);
+
+  size_t PathStart = url.find('/', addrEnd);
+  size_t PathEnd = url.find_last_of('/');
+  if (PathStart != std::string::npos && PathEnd != std::string::npos && PathStart != PathEnd) {
+    path = url.substr(PathStart, PathEnd - PathStart + 1);
+  }
+
   return true;
 }
 
@@ -869,10 +881,11 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
 		m_daemon_host = "localhost";
 	if (!m_daemon_port)
 		m_daemon_port = RPC_DEFAULT_PORT;
-  
+
+	m_daemon_path = "/";
 	if (!m_daemon_address.empty())
 	{
-		if (!parseUrlAddress(m_daemon_address, m_daemon_host, m_daemon_port))
+		if (!parseUrlAddress(m_daemon_address, m_daemon_host, m_daemon_port, m_daemon_path))
 		{
 			fail_msg_writer() << "failed to parse daemon address: " << m_daemon_address;
 			return false;
@@ -896,7 +909,10 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
 		return false;
 	}
 
-	this->m_node.reset(new NodeRpcProxy(m_daemon_host, m_daemon_port));
+        //std::cout << "Daemon host: " << m_daemon_host << std::endl;
+        //std::cout << "Daemon port: " << m_daemon_port << std::endl;
+	//std::cout << "Daemon path: " << m_daemon_path << std::endl;
+	this->m_node.reset(new NodeRpcProxy(m_daemon_host, m_daemon_port, m_daemon_path));
 
 	std::promise<std::error_code> errorPromise;
 	std::future<std::error_code> f_error = errorPromise.get_future();
@@ -1948,7 +1964,7 @@ std::string simple_wallet::getFeeAddress() {
   HttpRequest req;
   HttpResponse res;
 
-  req.setUrl("/feeaddress");
+  req.setUrl(m_daemon_path + "feeaddress");
   try {
 	  httpClient.request(req, res);
   }
@@ -2481,8 +2497,9 @@ int main(int argc, char* argv[]) {
     std::string daemon_host = command_line::get_arg(vm, arg_daemon_host);
     uint16_t daemon_port = command_line::get_arg(vm, arg_daemon_port);
 
+    std::string daemon_path = "/";
     if (!daemon_address.empty()) {
-      if (!parseUrlAddress(daemon_address, daemon_host, daemon_port)) {
+      if (!parseUrlAddress(daemon_address, daemon_host, daemon_port, daemon_path)) {
         logger(ERROR, BRIGHT_RED) << "failed to parse daemon address: " << daemon_address;
         return 1;
       }
@@ -2492,7 +2509,8 @@ int main(int argc, char* argv[]) {
     if (!daemon_port)
       daemon_port = RPC_DEFAULT_PORT;
 
-    std::unique_ptr<INode> node(new NodeRpcProxy(daemon_host, daemon_port));
+    //logger(INFO, BRIGHT_WHITE) << "daemon_path: " << daemon_path;
+    std::unique_ptr<INode> node(new NodeRpcProxy(daemon_host, daemon_port, daemon_path));
 
     std::promise<std::error_code> errorPromise;
     std::future<std::error_code> error = errorPromise.get_future();

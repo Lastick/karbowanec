@@ -61,11 +61,12 @@ std::error_code interpretResponseStatus(const std::string& status) {
 
 }
 
-NodeRpcProxy::NodeRpcProxy(const std::string& nodeHost, unsigned short nodePort) :
+NodeRpcProxy::NodeRpcProxy(const std::string& nodeHost, unsigned short nodePort, const std::string& nodePath) :
     m_rpcTimeout(10000),
     m_pullInterval(5000),
     m_nodeHost(nodeHost),
     m_nodePort(nodePort),
+    m_nodePath(nodePath),
     m_connected(true),
     m_peerCount(0),
     m_networkHeight(0),
@@ -256,7 +257,7 @@ void NodeRpcProxy::updateBlockchainStatus() {
   CryptoNote::COMMAND_RPC_GET_INFO::request getInfoReq = AUTO_VAL_INIT(getInfoReq);
   CryptoNote::COMMAND_RPC_GET_INFO::response getInfoResp = AUTO_VAL_INIT(getInfoResp);
 
-  ec = jsonCommand("/getinfo", getInfoReq, getInfoResp);
+  ec = jsonCommand(m_nodePath + "getinfo", getInfoReq, getInfoResp);
   if (!ec) {
     //a quirk to let wallets work with previous versions daemons.
     //Previous daemons didn't have the 'last_known_block_index' parameter in RPC so it may have zero value.
@@ -523,7 +524,7 @@ std::error_code NodeRpcProxy::doRelayTransaction(const CryptoNote::Transaction& 
   COMMAND_RPC_SEND_RAW_TX::request req;
   COMMAND_RPC_SEND_RAW_TX::response rsp;
   req.tx_as_hex = toHex(toBinaryArray(transaction));
-  return jsonCommand("/sendrawtransaction", req, rsp);
+  return jsonCommand(m_nodePath + "sendrawtransaction", req, rsp);
 }
 
 std::error_code NodeRpcProxy::doGetRandomOutsByAmounts(std::vector<uint64_t>& amounts, uint64_t outsCount,
@@ -533,7 +534,7 @@ std::error_code NodeRpcProxy::doGetRandomOutsByAmounts(std::vector<uint64_t>& am
   req.amounts = std::move(amounts);
   req.outs_count = outsCount;
 
-  std::error_code ec = binaryCommand("/getrandom_outs.bin", req, rsp);
+  std::error_code ec = binaryCommand(m_nodePath + "getrandom_outs.bin", req, rsp);
   if (!ec) {
     outs = std::move(rsp.outs);
   }
@@ -548,7 +549,7 @@ std::error_code NodeRpcProxy::doGetNewBlocks(std::vector<Crypto::Hash>& knownBlo
   CryptoNote::COMMAND_RPC_GET_BLOCKS_FAST::response rsp = AUTO_VAL_INIT(rsp);
   req.block_ids = std::move(knownBlockIds);
 
-  std::error_code ec = binaryCommand("/getblocks.bin", req, rsp);
+  std::error_code ec = binaryCommand(m_nodePath + "getblocks.bin", req, rsp);
   if (!ec) {
     newBlocks = std::move(rsp.blocks);
     startHeight = static_cast<uint32_t>(rsp.start_height);
@@ -563,7 +564,7 @@ std::error_code NodeRpcProxy::doGetTransactionOutsGlobalIndices(const Crypto::Ha
   CryptoNote::COMMAND_RPC_GET_TX_GLOBAL_OUTPUTS_INDEXES::response rsp = AUTO_VAL_INIT(rsp);
   req.txid = transactionHash;
 
-  std::error_code ec = binaryCommand("/get_o_indexes.bin", req, rsp);
+  std::error_code ec = binaryCommand(m_nodePath + "get_o_indexes.bin", req, rsp);
   if (!ec) {
     outsGlobalIndices.clear();
     for (auto idx : rsp.o_indexes) {
@@ -582,7 +583,7 @@ std::error_code NodeRpcProxy::doQueryBlocksLite(const std::vector<Crypto::Hash>&
   req.blockIds = knownBlockIds;
   req.timestamp = timestamp;
 
-  std::error_code ec = binaryCommand("/queryblockslite.bin", req, rsp);
+  std::error_code ec = binaryCommand(m_nodePath + "queryblockslite.bin", req, rsp);
   if (ec) {
     return ec;
   }
@@ -623,7 +624,7 @@ std::error_code NodeRpcProxy::doGetPoolSymmetricDifference(std::vector<Crypto::H
   req.tailBlockId = knownBlockId;
   req.knownTxsIds = knownPoolTxIds;
 
-  std::error_code ec = binaryCommand("/get_pool_changes_lite.bin", req, rsp);
+  std::error_code ec = binaryCommand(m_nodePath + "get_pool_changes_lite.bin", req, rsp);
 
   if (ec) {
     return ec;
@@ -729,7 +730,7 @@ std::error_code NodeRpcProxy::jsonRpcCommand(const std::string& method, const Re
     HttpResponse httpRes;
 
     httpReq.addHeader("Content-Type", "application/json");
-    httpReq.setUrl("/json_rpc");
+    httpReq.setUrl(m_nodePath + "json_rpc");
     httpReq.setBody(jsReq.getBody());
 
     m_httpClient->request(httpReq, httpRes);
