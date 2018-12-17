@@ -151,8 +151,14 @@ bool parseUrlAddress(const std::string& url, std::string& address, uint16_t& por
     port = Common::fromString<uint16_t>(url.substr(addrEnd + 1, portEnd));
   } else {
     addrEnd = url.find('/', addrStart);
-    if (addrEnd == std::string::npos) addrEnd = url.length() - 1;
-    port = 80;
+    if (addrEnd == std::string::npos) addrEnd = url.length();
+    if (url.compare(0, 7, "http://") == 0){
+      port = 80;
+    } else if (url.compare(0, 8, "https://") == 0){
+      port = 443;
+    } else {
+      port = RPC_DEFAULT_PORT;
+    }
   }
 
   address = url.substr(addrStart, addrEnd - addrStart);
