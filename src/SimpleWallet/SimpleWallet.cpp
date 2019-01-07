@@ -131,9 +131,10 @@ const command_line::arg_descriptor<bool> arg_reset = { "reset", "Discard cache d
 const command_line::arg_descriptor< std::vector<std::string> > arg_command = { "command", "" };
 
 
-bool parseUrlAddress(const std::string& url, std::string& address, uint16_t& port, std::string& path) {
+bool parseUrlAddress(const std::string& url, std::string& address, uint16_t& port, bool& ssl, std::string& path) {
   size_t pos = url.find("://");
   size_t addrStart = 0;
+  ssl = false;
 
   if (pos != std::string::npos) {
     addrStart = pos + 3;
@@ -156,6 +157,7 @@ bool parseUrlAddress(const std::string& url, std::string& address, uint16_t& por
       port = 80;
     } else if (url.compare(0, 8, "https://") == 0){
       port = 443;
+      ssl = true;
     } else {
       port = RPC_DEFAULT_PORT;
     }
@@ -889,9 +891,10 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
 		m_daemon_port = RPC_DEFAULT_PORT;
 
 	m_daemon_path = "/";
+	m_daemon_ssl = false;
 	if (!m_daemon_address.empty())
 	{
-		if (!parseUrlAddress(m_daemon_address, m_daemon_host, m_daemon_port, m_daemon_path))
+		if (!parseUrlAddress(m_daemon_address, m_daemon_host, m_daemon_port, m_daemon_ssl, m_daemon_path))
 		{
 			fail_msg_writer() << "failed to parse daemon address: " << m_daemon_address;
 			return false;
@@ -2504,8 +2507,9 @@ int main(int argc, char* argv[]) {
     uint16_t daemon_port = command_line::get_arg(vm, arg_daemon_port);
 
     std::string daemon_path = "/";
+    bool daemon_ssl = false;
     if (!daemon_address.empty()) {
-      if (!parseUrlAddress(daemon_address, daemon_host, daemon_port, daemon_path)) {
+      if (!parseUrlAddress(daemon_address, daemon_host, daemon_port, daemon_ssl, daemon_path)) {
         logger(ERROR, BRIGHT_RED) << "failed to parse daemon address: " << daemon_address;
         return 1;
       }
