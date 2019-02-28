@@ -158,8 +158,11 @@ void seedFormater(std::string& seed){
   const unsigned int word_width = 12;
   const unsigned int seed_col = 5;
   std::string word_buff;
+  unsigned int cjk_buff = 0;
   std::vector<std::string> seed_array;
   bool is_utf8 = false;
+  bool cn_lang = false;
+  bool jp_lang = false;
   unsigned int word_n = 0;
   for (unsigned int n = 0; n <= seed.length(); n++){
     if (seed[n] != 0x20 && seed[n] != 0x0A && seed[n] != 0x00){
@@ -171,22 +174,54 @@ void seedFormater(std::string& seed){
       }
     }
     if (static_cast<unsigned char>(seed[n]) > 127) is_utf8 = true;
+    if (seed_array.size() == 0){
+      if (n == 2){
+        cjk_buff = static_cast<unsigned char>(seed[n]) +
+                   (static_cast<unsigned char>(seed[n - 1]) << 8) +
+                   (static_cast<unsigned char>(seed[n - 2]) << 16);
+        if (cjk_buff >= 0xe38080 && cjk_buff <= 0xe381bf) jp_lang = true;
+        if (cjk_buff >= 0xE4B880 && cjk_buff <= 0xE9BEA0) cn_lang = true;
+      }
+    }
   }
   seed.clear();
   seed.append("\n ");
   size_t word_length = 0;
-  for (std::string word : seed_array){
+  size_t width_k = 1;
+  size_t cn_x = 0;
+  size_t cn_y = 0;
+  for (unsigned int k = 0; k < seed_array.size(); k++){
+    std::string word;
     if (is_utf8){
-      word_length = (size_t) word.length() / 2;
+      if (cn_lang || jp_lang){
+        if (jp_lang) {
+          width_k = 2;
+          word = seed_array[k];
+        } else {
+          word = seed_array[cn_x * seed_col + cn_y];
+          if (cn_x <= seed_col - 2){
+            cn_x++;
+          } else {
+            cn_x = 0;
+            cn_y++;
+          }
+        }
+        word_length = (size_t) word.length() / 3 * 2;
+      } else {
+        word = seed_array[k];
+        word_length = (size_t) word.length() / 2;
+      }
     } else {
+      word = seed_array[k];
       word_length = word.length();
     }
     seed.append(word);
-    for (unsigned int k = 2; k <= word_width - word_length && word_length <= word_width; k++) seed.append(" ");
+    for (unsigned int k = 2; k <= (word_width * width_k) - word_length && word_length <= (word_width * width_k); k++) seed.append(" ");
     seed.append(" ");
     word_n++;
     if (word_n >= seed_col){
       word_n = 0;
+      if (is_utf8 && cn_lang) seed.append("\n");
       seed.append("\n ");
     }
   }
