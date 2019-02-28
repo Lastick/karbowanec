@@ -159,6 +159,7 @@ void seedFormater(std::string& seed){
   const unsigned int seed_col = 5;
   std::string word_buff;
   std::vector<std::string> seed_array;
+  bool is_utf8 = false;
   unsigned int word_n = 0;
   for (unsigned int n = 0; n <= seed.length(); n++){
     if (seed[n] != 0x20 && seed[n] != 0x0A && seed[n] != 0x00){
@@ -169,12 +170,19 @@ void seedFormater(std::string& seed){
         word_buff.clear();
       }
     }
+    if (static_cast<unsigned char>(seed[n]) > 127) is_utf8 = true;
   }
   seed.clear();
   seed.append("\n ");
+  size_t word_length = 0;
   for (std::string word : seed_array){
+    if (is_utf8){
+      word_length = (size_t) word.length() / 2;
+    } else {
+      word_length = word.length();
+    }
     seed.append(word);
-    for (unsigned int k = 2; k <= word_width - word.length() && word.length() <= word_width; k++) seed.append(" ");
+    for (unsigned int k = 2; k <= word_width - word_length && word_length <= word_width; k++) seed.append(" ");
     seed.append(" ");
     word_n++;
     if (word_n >= seed_col){
