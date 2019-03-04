@@ -159,6 +159,7 @@ void seedFormater(std::string& seed){
   const unsigned int seed_col = 5;
   std::string word_buff;
   unsigned int cjk_buff = 0;
+  unsigned int cjk_offset = 0;
   std::vector<std::string> seed_array;
   bool is_utf8 = false;
   bool cn_lang = false;
@@ -174,13 +175,17 @@ void seedFormater(std::string& seed){
       }
     }
     if (static_cast<unsigned char>(seed[n]) > 127) is_utf8 = true;
-    if (seed_array.size() == 0){
-      if (n == 2){
-        cjk_buff = static_cast<unsigned char>(seed[n]) +
-                   (static_cast<unsigned char>(seed[n - 1]) << 8) +
-                   (static_cast<unsigned char>(seed[n - 2]) << 16);
-        if (cjk_buff >= 0xe38080 && cjk_buff <= 0xe381bf) jp_lang = true;
-        if (cjk_buff >= 0xE4B880 && cjk_buff <= 0xE9BEA0) cn_lang = true;
+    if (seed_array.size() == 0 && !jp_lang && !cn_lang && n <= cjk_offset + 2){
+      if (seed[n] == 0x20 || seed[n] == 0x0A || seed[n] == 0x00){
+        cjk_offset++;
+      } else {
+        if (n == cjk_offset + 2){
+          cjk_buff = static_cast<unsigned char>(seed[n]) +
+                     (static_cast<unsigned char>(seed[n - 1]) << 8) +
+                     (static_cast<unsigned char>(seed[n - 2]) << 16);
+          if (cjk_buff >= 0xe38080 && cjk_buff <= 0xe381bf) jp_lang = true;
+          if (cjk_buff >= 0xE4B880 && cjk_buff <= 0xE9BEA0) cn_lang = true;
+        }
       }
     }
   }
