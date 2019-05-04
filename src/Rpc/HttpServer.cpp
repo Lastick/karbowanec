@@ -25,6 +25,8 @@
 #include <boost/scope_exit.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl/stream.hpp>
+#include <boost/chrono.hpp>
+#include <boost/thread/thread.hpp>
 
 #include <HTTP/HttpParser.h>
 #include <System/InterruptedException.h>
@@ -78,7 +80,8 @@ namespace CryptoNote {
 
 HttpServer::HttpServer(System::Dispatcher& dispatcher, Logging::ILogger& log)
   : m_dispatcher(dispatcher), workingContextGroup(dispatcher), logger(log, "HttpServer") {
-  this->server_ssl_start = false;
+  this->server_ssl_do = false;
+  this->server_ssl_is_run = false;
   this->chain_file = "";
   this->key_file = "";
   this->dh_file = "";
@@ -98,16 +101,16 @@ void HttpServer::start(const std::string& address, uint16_t port, uint16_t port_
   workingContextGroup.spawn(std::bind(&HttpServer::acceptLoop, this));
 
   this->server_ssl_port = port_ssl;
-  this->server_ssl_start = server_ssl_enable;
+  this->server_ssl_do = server_ssl_enable;
   
   		if (!user.empty() || !password.empty()) {
 			m_credentials = base64Encode(user + ":" + password);
 		}
 
   if (!this->chain_file.empty() && !this->key_file.empty() && !this->dh_file.empty() &&
-      this->server_ssl_port != 0 && this->server_ssl_start){
-    std::thread t(&HttpServer::server_ssl, this);
-    t.detach();
+      this->server_ssl_port != 0 && this->server_ssl_do){
+    this->ssl_server_thread = boost::thread(&HttpServer::server_ssl, this);
+    this->ssl_server_thread.detach();
     //this->server_ssl();
   }
 }
@@ -115,12 +118,18 @@ void HttpServer::start(const std::string& address, uint16_t port, uint16_t port_
 void HttpServer::stop() {
   workingContextGroup.interrupt();
   workingContextGroup.wait();
+  this->server_ssl_do = false;
+  while(this->server_ssl_clients > 0){
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+  }
+  if (this->server_ssl_is_run) this->ssl_server_thread.interrupt();
 }
 
 void HttpServer::server(){
   bool srv_restart = false;
   try {
-    tcp::acceptor accept(this->io_service, tcp::endpoint(tcp::v4(), 32448));
+    boost::asio::io_service io_service;
+    tcp::acceptor accept(io_service, tcp::endpoint(tcp::v4(), 32448));
     srv_restart = true;
     for (;;){
       tcp::iostream stream;
@@ -196,30 +205,33 @@ void HttpServer::do_session_ssl(boost::asio::ip::tcp::socket &socket, boost::asi
 }
 
 void HttpServer::server_ssl(){
-  bool srv_loop = false;
-  try {
-    tcp::acceptor accept(this->io_service, tcp::endpoint(tcp::v4(), this->server_ssl_port));
+  while (this->server_ssl_do){
+    this->server_ssl_is_run = false;
+    try {
+      boost::asio::io_service io_service;
+      tcp::acceptor accept(io_service, tcp::endpoint(tcp::v4(), this->server_ssl_port));
 
-    boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
-    ctx.set_options(boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2);
-    ctx.use_certificate_chain_file(this->chain_file);
-    ctx.use_private_key_file(this->key_file, boost::asio::ssl::context::pem);
-    ctx.use_tmp_dh_file(this->dh_file);
+      boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
+      ctx.set_options(boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2);
+      ctx.use_certificate_chain_file(this->chain_file);
+      ctx.use_private_key_file(this->key_file, boost::asio::ssl::context::pem);
+      ctx.use_tmp_dh_file(this->dh_file);
 
-    srv_loop = true;
-    while(srv_loop){
-      tcp::socket sock(this->io_service);
-      accept.accept(sock);
-      std::thread t(std::bind(&HttpServer::do_session_ssl, this, std::move(sock), std::ref(ctx)));
-      t.detach();
+      while(this->server_ssl_do){
+        tcp::socket sock(io_service);
+        this->server_ssl_is_run = true;
+        accept.accept(sock);
+        boost::thread t(std::bind(&HttpServer::do_session_ssl, this, std::move(sock), std::ref(ctx)));
+        t.detach();
+      }
+      while(this->server_ssl_clients > 0){
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+      }
+    } catch (std::exception& e) {
+      logger(ERROR, BRIGHT_RED) << "SSL server error: " << e.what() << std::endl;
     }
-  } catch (std::exception& e) {
-    logger(ERROR, BRIGHT_RED) << "SSL server error: " << e.what() << std::endl;
   }
-  if (srv_loop && this->server_ssl_start){
-    std::thread t(&HttpServer::server_ssl, this);
-    t.detach();
-  }
+  this->server_ssl_is_run = false;
 }
 
 void HttpServer::acceptLoop() {

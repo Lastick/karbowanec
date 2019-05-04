@@ -25,6 +25,7 @@
 #include <HTTP/HttpResponse.h>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl/stream.hpp>
+#include <boost/thread/thread.hpp>
 
 #include <System/ContextGroup.h>
 #include <System/Dispatcher.h>
@@ -52,14 +53,13 @@ public:
   virtual size_t get_connections_count() const;
 
   uint16_t server_ssl_port;
-  bool server_ssl_start;
+  bool server_ssl_do;
 
 protected:
 
   System::Dispatcher& m_dispatcher;
 
 private:
-  boost::asio::io_service io_service;
   std::string chain_file;
   std::string key_file;
   std::string dh_file;
@@ -70,7 +70,9 @@ private:
   void acceptLoop();
   void connectionHandler(System::TcpConnection&& conn);
   bool authenticate(const HttpRequest& request) const;
+  bool server_ssl_is_run;
 
+  boost::thread ssl_server_thread;
   System::ContextGroup workingContextGroup;
   Logging::LoggerRef logger;
   System::TcpListener m_listener;
