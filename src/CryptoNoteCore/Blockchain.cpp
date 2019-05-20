@@ -733,7 +733,7 @@ difficulty_type Blockchain::getAvgDifficultyForHeight(uint32_t height, size_t wi
     ++offset;
   }
   difficulty_type cumulDiffForPeriod = m_blocks[height].cumulative_difficulty - m_blocks[offset].cumulative_difficulty;
-  return cumulDiffForPeriod / std::min<uint32_t>(m_blocks.size(), window);
+  return cumulDiffForPeriod / std::min<uint32_t>(m_blocks.size(), (uint32_t) window);
 }
 
 uint64_t Blockchain::getBlockTimestamp(uint32_t height) {
@@ -749,12 +749,12 @@ uint64_t Blockchain::getMinimalFee(uint32_t height) {
 	}
 
 	if (height > m_blocks.size() - 1) {
-		height = m_blocks.size() - 1;
+		height = (uint32_t) m_blocks.size() - 1;
 	}
 	if (height < 3) {
 		height = 3;
 	}
-	size_t window = std::min(height, std::min<uint32_t>(m_blocks.size(), m_currency.expectedNumberOfBlocksPerDay()));
+	size_t window = std::min(height, std::min<uint32_t>((uint32_t) m_blocks.size(), (uint32_t) m_currency.expectedNumberOfBlocksPerDay()));
 	if (window == 0) {
 		++window;
 	}
