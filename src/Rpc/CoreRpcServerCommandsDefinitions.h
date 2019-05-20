@@ -48,7 +48,7 @@ struct COMMAND_RPC_GET_HEIGHT {
   typedef EMPTY_STRUCT request;
 
   struct response {
-    uint64_t height;
+    uint32_t height;
     std::string status;
 
     void serialize(ISerializer &s) {
@@ -272,7 +272,7 @@ struct COMMAND_RPC_GET_INFO {
   struct response {
     std::string status;
     std::string version;
-    uint64_t height;
+    uint32_t height;
     std::string top_block_hash;
     uint64_t difficulty;
     uint64_t min_tx_fee;
@@ -441,8 +441,8 @@ struct block_header_response {
   std::string prev_hash;
   uint32_t nonce;
   bool orphan_status;
-  uint64_t height;
-  uint64_t depth;
+  uint32_t height;
+  uint32_t depth;
   std::string hash;
   difficulty_type difficulty;
   uint64_t reward;
