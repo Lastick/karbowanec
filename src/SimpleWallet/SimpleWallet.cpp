@@ -2442,7 +2442,7 @@ bool simple_wallet::verify_message(const std::vector<std::string> &args) {
     fail_msg_writer() << ("Signature decoding error");
     return false;
   }
-  Crypto::Signature s;
+  Crypto::Signature s = {0};
   if (sizeof(s) != decoded.size()) {
     fail_msg_writer() << ("Signature decoding error");
     return false;
