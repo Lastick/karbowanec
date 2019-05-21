@@ -793,6 +793,11 @@ namespace CryptoNote
     return false;
   }
 
+  bool NodeServer::is_local_addr(const NetworkAddress& peer) {
+    if (m_bind_ip != "0.0.0.0" &&
+         (m_bind_ip == Common::ipAddressToString(peer.ip) && peer.port == m_listeningPort)) return true;
+    return false;
+  }
 
   bool NodeServer::try_to_connect_and_handshake_with_new_peer(const NetworkAddress& na, bool just_take_peerlist, uint64_t last_seen_stamp, bool white)  {
 
@@ -914,6 +919,9 @@ namespace CryptoNote
       if(is_peer_used(pe))
         continue;
 
+      if (is_local_addr(pe.adr))
+        continue;
+
 	  if (!is_remote_host_allowed(pe.adr.ip)) {
 		  continue;
 	  }
@@ -945,6 +953,10 @@ namespace CryptoNote
       size_t current_index = Crypto::rand<size_t>() % m_seed_nodes.size();
       
       while(true) {
+
+        if (is_local_addr(m_seed_nodes[current_index]))
+          break;
+
         if(try_to_connect_and_handshake_with_new_peer(m_seed_nodes[current_index], true))
           break;
 
