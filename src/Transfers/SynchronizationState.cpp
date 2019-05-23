@@ -23,6 +23,9 @@
 #include "Serialization/BinaryOutputStreamSerializer.h"
 #include "CryptoNoteCore/CryptoNoteSerialization.h"
 
+#define _unused(x) ((void)(x))
+
+
 using namespace Common;
 
 namespace CryptoNote {
@@ -95,7 +98,8 @@ void SynchronizationState::detach(uint32_t height) {
 void SynchronizationState::addBlocks(const Crypto::Hash* blockHashes, uint32_t height, uint32_t count) {
   assert(blockHashes);
   auto size = m_blockchain.size();
-  assert( size == height);
+  assert(size == height);
+  _unused(size);
   m_blockchain.insert(m_blockchain.end(), blockHashes, blockHashes + count);
 }
 
