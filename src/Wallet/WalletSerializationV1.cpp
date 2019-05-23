@@ -29,6 +29,9 @@
 #include "WalletLegacy/WalletLegacySerialization.h"
 #include "WalletLegacy/WalletLegacySerializer.h"
 
+#define _unused(x) ((void)(x))
+
+
 using namespace Common;
 using namespace Crypto;
 using namespace CryptoNote;
@@ -450,7 +453,7 @@ void WalletSerializerV1::loadWallets(Common::IInputStream& source, CryptoContext
   deserializeEncrypted(count, "wallets_count", cryptoContext, source);
   cryptoContext.incIv();
 
-  bool isTrackingMode;
+  bool isTrackingMode = false;
 
   for (uint64_t i = 0; i < count; ++i) {
     WalletRecordDto dto;
@@ -501,6 +504,7 @@ void WalletSerializerV1::subscribeWallets() {
     auto& subscription = m_synchronizer.addSubscription(sub);
     bool r = index.modify(it, [&subscription] (WalletRecord& rec) { rec.container = &subscription.getContainer(); });
     assert(r);
+    _unused(r);
 
     subscription.addObserver(&m_transfersObserver);
   }
@@ -560,6 +564,7 @@ void WalletSerializerV1::loadUnlockTransactionsJobs(Common::IInputStream& source
 
     index.insert(std::move(job));
   }
+  _unused(walletsSize);
 }
 
 void WalletSerializerV1::loadObsoleteChange(Common::IInputStream& source, CryptoContext& cryptoContext) {

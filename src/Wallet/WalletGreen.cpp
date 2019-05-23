@@ -65,6 +65,9 @@ extern "C"
 #include "crypto/crypto-ops.h"
 }
 
+#define _unused(x) ((void)(x))
+
+
 using namespace Common;
 using namespace Crypto;
 using namespace CryptoNote;
@@ -705,8 +708,6 @@ void WalletGreen::copyContainerStorageKeys(ContainerStorage& src, const chacha8_
     dst.flush();
   });
 
-  size_t counter = 0;
-
   for (auto& encryptedSpendKeys : src) {
     Crypto::PublicKey publicKey;
     Crypto::SecretKey secretKey;
@@ -839,6 +840,7 @@ void WalletGreen::subscribeWallets() {
       auto& subscription = m_synchronizer.addSubscription(sub);
       bool r = index.modify(it, [&subscription](WalletRecord& rec) { rec.container = &subscription.getContainer(); });
       assert(r);
+      _unused(r);
 
       subscription.addObserver(this);
     }
@@ -879,7 +881,7 @@ void WalletGreen::convertAndLoadWalletFile(const std::string& path, std::ifstrea
   boost::filesystem::path tmpPath = boost::filesystem::unique_path(path + ".tmp.%%%%-%%%%");
 
   if (boost::filesystem::exists(bakPath)) {
-	m_logger(INFO) << "Wallet backup already exists! Creating random file name backup.";
+    m_logger(INFO) << "Wallet backup already exists! Creating random file name backup.";
     bakPath = boost::filesystem::unique_path(path + ".%%%%-%%%%" + ".backup");
   }
 
@@ -2009,6 +2011,7 @@ bool WalletGreen::updateWalletTransactionInfo(size_t transactionId, const Crypto
   });
 
   assert(r);
+  _unused(r);
 
   if (updated) {
     m_logger(DEBUGGING) << "Transaction updated, ID " << transactionId <<
@@ -3029,6 +3032,7 @@ void WalletGreen::onTransactionUpdated(const Crypto::PublicKey&, const Crypto::H
     uint64_t outputsAmount;
     bool found = container->getTransactionInformation(transactionHash, info, &inputsAmount, &outputsAmount);
     assert(found);
+    _unused(found);
 
     ContainerAmounts containerAmounts;
     containerAmounts.container = container;
