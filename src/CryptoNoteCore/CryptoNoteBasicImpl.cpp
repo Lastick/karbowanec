@@ -25,6 +25,9 @@
 #include "crypto/hash.h"
 #include "Common/int-util.h"
 
+#define _unused(x) ((void)(x))
+
+
 using namespace Crypto;
 using namespace Common;
 
@@ -70,6 +73,7 @@ namespace CryptoNote {
     BinaryArray ba;
     bool r = toBinaryArray(adr, ba);
     assert(r);
+    _unused(r);
     return Tools::Base58::encode_addr(prefix, Common::asString(ba));
   }
   //-----------------------------------------------------------------------

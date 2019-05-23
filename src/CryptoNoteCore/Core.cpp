@@ -38,6 +38,8 @@
 #include "IBlock.h"
 
 #undef ERROR
+#define _unused(x) ((void)(x))
+
 
 using namespace Logging;
 #include "CryptoNoteCore/CoreConfig.h"
@@ -271,6 +273,7 @@ bool core::check_tx_mixin(const Transaction& tx, uint32_t height) {
       }
     }
   }
+  _unused(inputIndex);
   return true;
 }
 
