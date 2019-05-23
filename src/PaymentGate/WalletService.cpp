@@ -52,6 +52,9 @@
 
 #include "Mnemonics/electrum-words.cpp"
 
+#define _unused(x) ((void)(x))
+
+
 using namespace CryptoNote;
 
 namespace PaymentService {
@@ -88,6 +91,7 @@ Crypto::Hash parsePaymentId(const std::string& paymentIdStr) {
   Crypto::Hash paymentId;
   bool r = Common::podFromHex(paymentIdStr, paymentId);
   assert(r);
+  _unused(r);
 
   return paymentId;
 }
