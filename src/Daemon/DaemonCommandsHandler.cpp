@@ -117,7 +117,7 @@ bool DaemonCommandsHandler::status(const std::vector<std::string>& args) {
   uint32_t height = m_core.get_current_blockchain_height() - 1;
   uint64_t difficulty = m_core.getNextBlockDifficulty();
   size_t tx_pool_size = m_core.get_pool_transactions_count();
-  size_t alt_blocks_count = m_core.get_alternative_blocks_count();
+  //size_t alt_blocks_count = m_core.get_alternative_blocks_count();
   uint32_t last_known_block_index = std::max(static_cast<uint32_t>(1), protocolQuery.getObservedHeight()) - 1;
   Crypto::Hash last_block_hash = m_core.getBlockIdByHeight(height);
   size_t total_conn = m_srv.get_connections_count();
@@ -415,7 +415,7 @@ bool DaemonCommandsHandler::ban(const std::vector<std::string>& args)
   if (args.size() != 1 && args.size() != 2) return false;
   std::string addr = args[0];
   uint32_t ip;
-  time_t seconds;
+  time_t seconds = 0;
   if (args.size() > 1) {
     try {
       seconds = std::stoi(args[1]);
