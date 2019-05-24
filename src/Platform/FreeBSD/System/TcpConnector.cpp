@@ -35,6 +35,9 @@
 #include "ErrorMessage.h"
 #include "TcpConnection.h"
 
+#define _unused(x) ((void)(x))
+
+
 namespace System {
 
 namespace {
@@ -168,7 +171,8 @@ TcpConnection TcpConnector::connect(const Ipv4Address& address, uint16_t port) {
     }
 
     int result = close(connection);
-    assert(result != -1);;
+    assert(result != -1);
+    _unused(result);
   }
 
   throw std::runtime_error("TcpConnector::connect, " + message);

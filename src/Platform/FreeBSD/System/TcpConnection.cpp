@@ -31,6 +31,9 @@
 #include <System/InterruptedException.h>
 #include <System/Ipv4Address.h>
 
+#define _unused(x) ((void)(x))
+
+
 namespace System {
 
 TcpConnection::TcpConnection() : dispatcher(nullptr) {
@@ -53,6 +56,7 @@ TcpConnection::~TcpConnection() {
     assert(writeContext == nullptr);
     int result = close(connection);
     assert(result != -1);
+    _unused(result);
   }
 }
 

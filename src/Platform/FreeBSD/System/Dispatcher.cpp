@@ -30,6 +30,9 @@
 #include "Context.h"
 #include "ErrorMessage.h"
 
+#define _unused(x) ((void)(x))
+
+
 namespace System {
 
 namespace{
@@ -102,6 +105,7 @@ Dispatcher::Dispatcher() : lastCreatedTimer(0) {
 
     auto result = close(kqueue);
     assert(result == 0);
+    _unused(result);
   }
 
   throw std::runtime_error("Dispatcher::Dispatcher, " + message);
@@ -129,6 +133,7 @@ Dispatcher::~Dispatcher() {
   assert(result != -1);
   result = pthread_mutex_destroy(reinterpret_cast<pthread_mutex_t*>(this->mutex));
   assert(result != -1);
+  _unused(result);
 }
 
 void Dispatcher::clear() {

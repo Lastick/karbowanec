@@ -35,6 +35,9 @@
 #include <System/InterruptedException.h>
 #include <System/Ipv4Address.h>
 
+#define _unused(x) ((void)(x))
+
+
 namespace System {
 
 TcpListener::TcpListener() : dispatcher(nullptr) {
@@ -98,6 +101,7 @@ TcpListener::~TcpListener() {
     assert(context == nullptr);
     int result = close(listener);
     assert(result != -1);
+    _unused(result);
   }
 }
 
