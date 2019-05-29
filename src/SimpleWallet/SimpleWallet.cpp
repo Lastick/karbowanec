@@ -2541,6 +2541,7 @@ int main(int argc, char* argv[]) {
   std::string default_data_dir;
   bool is_sys_dir = false;
   if (Common::GetExePath(exe_path)) {
+    std::cout << "ExePath: " << exe_path << std::endl;
     if (Common::IsSysDir(exe_path)) {
       is_sys_dir = true;
       default_data_dir = Common::NativePathToGeneric(Tools::getDefaultDataDirectory());
