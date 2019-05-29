@@ -17,6 +17,9 @@
 
 #include "PathTools.h"
 #include <algorithm>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -139,6 +142,14 @@ bool GetExePath(std::string &path) {
   DWORD result = GetModuleFileNameA(nullptr, native_path, PATH_LEN);
   if (result > 0 && result != PATH_LEN) {
     path = std::string(native_path);
+    res = true;
+  }
+#elif defined(__APPLE__)
+  const char *path_base;
+  int result = _NSGetExecutablePath(native_path, &PATH_LEN);
+  if (result != -1) {
+    path_base = dirname(native_path);
+    path = std::string(path_base);
     res = true;
   }
 #else
