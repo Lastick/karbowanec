@@ -65,8 +65,7 @@ endif()
 set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG ${OPT_FLAGS_RELEASE}")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG ${OPT_FLAGS_RELEASE}")
 
-list(INSERT CMAKE_MODULE_PATH 0
-  "${CMAKE_SOURCE_DIR}/cmake")
+list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/cmake")
 
 if (NOT DEFINED ENV{DEVELOPER_LOCAL_TOOLS})
   message(STATUS "Could not find DEVELOPER_LOCAL_TOOLS in env (not required)")
@@ -100,7 +99,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake ${CMAKE_CURRENT_BIN
 
 project(Karbowanec)
 
-include_directories(include src external "${CMAKE_CURRENT_BINARY_DIR}/version")  
+include_directories(include src external "${CMAKE_CURRENT_BINARY_DIR}/version") 
+
+include(CheckLinuxRelease)
 
 # Check whether we're on a 32-bit or 64-bit system
 if(CMAKE_SIZEOF_VOID_P EQUAL "8")
