@@ -28,6 +28,7 @@ set (OS_VERSION_MINOR "0")
 set (OS_VERSION_PATCH "0")
 set (OS_CODENAME "")
 set (OS_DEBIAN FALSE)
+set (OS_UBUNTU FALSE)
 set (OS_REDHAT FALSE)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND NOT ANDROID)
@@ -75,13 +76,32 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND NOT ANDROID)
   set (OS_LINUX TRUE)
 endif()
 
+# Detecting Linux family
+if (OS_LINUX)
+
+  if ((${OS_NAME} STREQUAL "fedora") OR
+      (${OS_NAME} STREQUAL "centos"))
+    set (OS_REDHAT TRUE)
+
+  elseif ((${OS_NAME} STREQUAL "ubuntu") OR
+          (${OS_NAME} STREQUAL "kubuntu") OR
+          (${OS_NAME} STREQUAL "lubuntu"))
+    set (OS_DEBIAN TRUE)
+    set (OS_UBUNTU TRUE)
+
+  elseif ((${OS_NAME} STREQUAL "debian") OR
+          (${OS_NAME} STREQUAL "raspbian"))
+    set (OS_DEBIAN TRUE)
+
+  endif()
+endif()
+
 # Set codename
-if (OS_LINUX AND OS_NAME AND OS_VERSION)
-  if (OS_NAME STREQUAL "ubuntu")
+if (OS_LINUX AND OS_VERSION)
+
+  if (OS_UBUNTU)
     if (${OS_VERSION_SHORT} VERSION_EQUAL "10.4")
       set (OS_CODENAME "Lucid Lynx")
-    elseif (${OS_VERSION_SHORT} VERSION_EQUAL "10.10")
-      set (OS_CODENAME "Maverick Meerkat")
     elseif (${OS_VERSION_SHORT} VERSION_EQUAL "10.10")
       set (OS_CODENAME "Maverick Meerkat")
     elseif (${OS_VERSION_SHORT} VERSION_EQUAL "11.4")
@@ -121,11 +141,47 @@ if (OS_LINUX AND OS_NAME AND OS_VERSION)
     elseif (${OS_VERSION_SHORT} VERSION_EQUAL "19.10")
       set (OS_CODENAME "Eoan Ermine")
     endif()
+
+  elseif (OS_DEBIAN AND NOT OS_UBUNTU)
+    if (${OS_VERSION_SHORT} VERSION_EQUAL "5.0")
+      set (OS_CODENAME "Lenny")
+    elseif (${OS_VERSION_SHORT} VERSION_EQUAL "6.0")
+      set (OS_CODENAME "Squeeze")
+    elseif ((${OS_VERSION_SHORT} VERSION_EQUAL "7.0") OR
+            (${OS_VERSION_SHORT} VERSION_EQUAL "7.11") OR
+            ((${OS_VERSION_SHORT} VERSION_GREATER "7.0") AND (${OS_VERSION_SHORT} VERSION_LESS "7.11")))
+      set (OS_CODENAME "Wheezy")
+    elseif ((${OS_VERSION_SHORT} VERSION_EQUAL "8.0") OR
+            (${OS_VERSION_SHORT} VERSION_EQUAL "8.11") OR
+            ((${OS_VERSION_SHORT} VERSION_GREATER "8.0") AND (${OS_VERSION_SHORT} VERSION_LESS "8.11")))
+      set (OS_CODENAME "Jessie")
+    elseif ((${OS_VERSION_SHORT} VERSION_EQUAL "9.0") OR
+            (${OS_VERSION_SHORT} VERSION_EQUAL "9.9") OR
+            ((${OS_VERSION_SHORT} VERSION_GREATER "9.0") AND (${OS_VERSION_SHORT} VERSION_LESS "9.9")))
+      set (OS_CODENAME "Stretch")
+    elseif (${OS_VERSION_SHORT} VERSION_EQUAL "10.0")
+      set (OS_CODENAME "Buster")
+    elseif (${OS_VERSION_SHORT} VERSION_EQUAL "11.0")
+      set (OS_CODENAME "Bullseye")
+    endif()
+
   endif()
 endif()
 
+# Show info
 if (OS_LINUX)
   string(TOUPPER ${OS_NAME} _OS_NAME_UPPER)
-  message(STATUS "Host machine running on Linux OS ${_OS_NAME_UPPER} ${OS_VERSION} (${OS_CODENAME})")
+  if (OS_DEBIAN)
+    message(STATUS "Host machine running on Linux OS ${_OS_NAME_UPPER} ${OS_VERSION} (${OS_CODENAME})")
+    if (OS_UBUNTU)
+      message(STATUS "OS detected as DEBIAN Linux famly (UBUNTU subfamly)")
+    else()
+      message(STATUS "OS detected as DEBIAN Linux famly")
+    endif()
+  elseif (OS_REDHAT)
+    message(STATUS "Host machine running on Linux OS ${_OS_NAME_UPPER} ${OS_VERSION}")
+    message(STATUS "OS detected as REDHAT Linux famly")
+  else()
+    message(STATUS "Host machine running on Linux (could not determine family)")
+  endif()
 endif()
-
