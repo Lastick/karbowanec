@@ -207,6 +207,7 @@ if(STATIC)
   else()
     set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
   endif()
+  set (OPENSSL_USE_STATIC_LIBS ON)
 endif()
 
 if (UNIX AND NOT APPLE)
@@ -507,13 +508,22 @@ if(STATIC)
   set(Boost_USE_STATIC_LIBS ON)
   set(Boost_USE_STATIC_RUNTIME ON)
 endif()
+
 find_package(Boost 1.55 QUIET REQUIRED COMPONENTS system filesystem thread date_time chrono regex serialization program_options coroutine context atomic)
+
+if (WITH_SSL)
+  find_package(OpenSSL)
+endif()
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ${OLD_LIB_SUFFIXES})
 if(NOT Boost_FOUND)
   die("Could not find Boost libraries, please make sure you have installed Boost or libboost-all-dev (1.58) or the equivalent")
 elseif(Boost_FOUND)
   message(STATUS "Found Boost Version: ${Boost_VERSION}")
+endif()
+
+if (WITH_SSL AND NOT OPENSSL_FOUND)
+  message(WARNING "Build with OpenSSL support, but the component is not detected, therefore support is not active.")
 endif()
 
 if(MINGW)

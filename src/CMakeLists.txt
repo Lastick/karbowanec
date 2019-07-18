@@ -3,6 +3,10 @@ add_definitions(-DSTATICLIB)
 
 include_directories(${CMAKE_SOURCE_DIR}/external/linenoise)
 
+if (WITH_SSL AND OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+endif()
+
 file(GLOB_RECURSE BlockchainExplorer BlockchainExplorer/*)
 file(GLOB_RECURSE Common Common/*)
 file(GLOB_RECURSE Crypto crypto/*)
@@ -86,6 +90,14 @@ target_link_libraries(GreenWallet ${KarboWallet} ${KarboCore} Mnemonics ${KarboC
 target_link_libraries(PaymentGateService ${KarboPaymentGate} ${KarboWallet} ${KarboCore}
                       ${KarboLink} ${KarboCommon} upnpc-static ${Boost_LIBRARIES})
 target_link_libraries(Miner ${KarboCore} ${KarboCommon} ${Boost_LIBRARIES})
+
+if (WITH_SSL AND OPENSSL_FOUND)
+  target_link_libraries(Daemon ${OPENSSL_LIBRARIES})
+  target_link_libraries(SimpleWallet ${OPENSSL_LIBRARIES})
+  target_link_libraries(GreenWallet ${OPENSSL_LIBRARIES})
+  target_link_libraries(PaymentGateService ${OPENSSL_LIBRARIES})
+  target_link_libraries(Miner ${OPENSSL_LIBRARIES})
+endif()
 
 if (MSVC)
   target_link_libraries(KarboCore ws2_32)
