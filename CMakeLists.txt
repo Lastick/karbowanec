@@ -509,6 +509,10 @@ if(STATIC)
 endif()
 find_package(Boost 1.55 QUIET REQUIRED COMPONENTS system filesystem thread date_time chrono regex serialization program_options coroutine context atomic)
 
+if (WITH_SSL)
+  find_package(Secure)
+endif()
+
 set(CMAKE_FIND_LIBRARY_SUFFIXES ${OLD_LIB_SUFFIXES})
 if(NOT Boost_FOUND)
   die("Could not find Boost libraries, please make sure you have installed Boost or libboost-all-dev (1.58) or the equivalent")
