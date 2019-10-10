@@ -93,8 +93,7 @@ namespace Random
      * Obtain the generator used internally. Helpful for passing to functions
      * like std::shuffle.
      */
-    inline auto generator()
-    {
-        return gen;
+    inline std::mt19937 generator() {
+      return gen;
     }
 }
