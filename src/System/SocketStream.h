@@ -19,9 +19,9 @@
 #pragma once
 
 #include <array>
+#include <vector>
 #include <cstdint>
 #include <streambuf>
-
 
 namespace System {
 
@@ -29,14 +29,16 @@ class SocketStreambuf: public std::streambuf {
   public:
     SocketStreambuf(char *data, size_t lenght);
     ~SocketStreambuf();
-    char o_buff[65536];
+    void getRespdata(std::vector<uint8_t> &data);
   private:
     size_t lenght;
     bool read_t;
-    std::array<char, 2048> readBuf;
-    std::array<uint8_t, 65536> writeBuf;
+    std::array<uint8_t, 1024> writeBuf;
+    std::vector<uint8_t> resp_data;
+    std::streambuf::int_type overflow(std::streambuf::int_type ch) override;
     std::streambuf::int_type underflow() override;
     int sync() override;
+    bool dumpBuffer(bool finalize);
 };
 
 }

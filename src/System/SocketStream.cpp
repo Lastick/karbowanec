@@ -24,19 +24,32 @@
 
 namespace System {
 
-SocketStreambuf::SocketStreambuf(char *data, size_t lenght){
+SocketStreambuf::SocketStreambuf(char *data, size_t lenght) {
   this->lenght = lenght;
-  memcpy(this->readBuf.data(), data, lenght);
-  setg(&readBuf.front(), &readBuf.front(), &readBuf.front());
+  setg(data, data, data + lenght);
   setp(reinterpret_cast<char*>(&writeBuf.front()), reinterpret_cast<char *>(&writeBuf.front() + writeBuf.max_size()));
-  this->read_t = true;
 }
 
 SocketStreambuf::~SocketStreambuf(){
+  this->dumpBuffer(true);
 }
 
-std::streambuf::int_type SocketStreambuf::underflow(){
-  if (gptr() < egptr()){
+std::streambuf::int_type SocketStreambuf::overflow(std::streambuf::int_type ch) {
+  if (ch == traits_type::eof()) {
+    return traits_type::eof();
+  }
+  if (pptr() == epptr()) {
+    if (!dumpBuffer(false)) {
+      return traits_type::eof();
+    }
+  }
+  *pptr() = static_cast<char>(ch);
+  pbump(1);
+  return ch;
+}
+
+std::streambuf::int_type SocketStreambuf::underflow() {
+  if (gptr() < egptr()) {
     return traits_type::to_int_type(*gptr());
   }
   if (read_t){
@@ -47,18 +60,27 @@ std::streambuf::int_type SocketStreambuf::underflow(){
   if (this->lenght == 0) {
     return traits_type::eof();
   }
-  setg(&readBuf.front(), &readBuf.front(), &readBuf.front() + this->lenght);
   return traits_type::to_int_type(*gptr());
 }
 
 int SocketStreambuf::sync(){
-  const size_t o_buff_size = 65536;
+  return dumpBuffer(true) ? 0 : -1;
+}
+
+bool SocketStreambuf::dumpBuffer(bool finalize) {
   size_t count = pptr() - pbase();
-  memset(this->o_buff, 0, o_buff_size);
-  if (count > 0 && count < o_buff_size){
-    strncpy (this->o_buff, (char*) this->writeBuf.data(), count);
+  if (count == 0) {
+    return true;
   }
-  return 0;
+  size_t resp_data_size = this->resp_data.size();
+  this->resp_data.resize(resp_data_size + count);
+  memcpy(this->resp_data.data() + resp_data_size, &writeBuf.front(), count);
+  pbump(-static_cast<int>(count));
+  return true;
+}
+
+void SocketStreambuf::getRespdata(std::vector<uint8_t> &data) {
+  data = this->resp_data;
 }
 
 }

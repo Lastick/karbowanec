@@ -22,6 +22,7 @@
 #include <string.h>
 #include <streambuf>
 #include <array>
+#include <vector>
 #include <boost/scope_exit.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl/stream.hpp>
@@ -163,19 +164,19 @@ void HttpServer::server(){
 }
 
 void HttpServer::do_session_ssl(boost::asio::ip::tcp::socket &socket, boost::asio::ssl::context &ctx){
-  const size_t i_buff_size = 2048;
+  const size_t request_max_len = 1024 * 32;
   boost::system::error_code ec;
   boost::asio::ssl::stream<tcp::socket&> stream(socket, ctx);
-  stream.handshake(boost::asio::ssl::stream_base::server, ec);
+
   this->server_ssl_clients++;
 
   try {
-    if (!ec){
-      char i_buff[i_buff_size];
-      size_t length = stream.read_some(boost::asio::buffer(i_buff, i_buff_size), ec);
-      if (length > 0 && length < i_buff_size){
-        System::SocketStreambuf streambuf((char *) i_buff, length);
-        std::iostream io_stream(&streambuf);
+    stream.handshake(boost::asio::ssl::stream_base::server, ec);
+    if (!ec) {
+      char req_buff[request_max_len];
+      size_t req_len = stream.read_some(boost::asio::buffer(req_buff, request_max_len), ec);
+      if (req_len > 0 && req_len < request_max_len) {
+        System::SocketStreambuf streambuf((char *) req_buff, req_len);
 
         HttpParser parser;
         HttpRequest req;
@@ -183,6 +184,7 @@ void HttpServer::do_session_ssl(boost::asio::ip::tcp::socket &socket, boost::asi
         resp.addHeader("Access-Control-Allow-Origin", "*");
         resp.addHeader("content-type", "application/json");
 
+        std::iostream io_stream(&streambuf);
         parser.receiveRequest(io_stream, req);
 
         if (authenticate(req)) {
@@ -193,7 +195,9 @@ void HttpServer::do_session_ssl(boost::asio::ip::tcp::socket &socket, boost::asi
         io_stream << resp;
         io_stream.flush();
 
-        stream.write_some(boost::asio::buffer(streambuf.o_buff), ec);
+        std::vector<uint8_t> resp_data;
+        streambuf.getRespdata(resp_data);
+        stream.write_some(boost::asio::buffer(resp_data), ec);
       } else {
         logger(WARNING) << "Unable to process request (SSL server)" << std::endl;
       }
