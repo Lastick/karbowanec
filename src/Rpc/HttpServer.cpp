@@ -29,6 +29,7 @@
 #include <boost/chrono.hpp>
 #include <boost/thread/thread.hpp>
 
+
 #include <HTTP/HttpParser.h>
 #include <System/InterruptedException.h>
 #include <System/TcpStream.h>
@@ -198,6 +199,7 @@ void HttpServer::do_session_ssl(boost::asio::ip::tcp::socket &socket, boost::asi
         std::vector<uint8_t> resp_data;
         streambuf.getRespdata(resp_data);
         stream.write_some(boost::asio::buffer(resp_data), ec);
+        stream.lowest_layer().close(ec);
       } else {
         logger(WARNING) << "Unable to process request (SSL server)" << std::endl;
       }
