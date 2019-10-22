@@ -611,3 +611,4 @@ void cn_slow_hash<MEMORY, ITER, VERSION>::software_hash(const void* in, size_t l
 template class cn_v1_hash_t;
 template class cn_v2_hash_t;
 template class cn_v3_hash_t;
+template class cn_v4_hash_t;
