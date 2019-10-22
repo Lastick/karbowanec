@@ -3,7 +3,33 @@
 // Portions of this file are available under BSD-3 license. Please see ORIGINAL-LICENSE for details
 // All rights reserved.
 //
-// Ryo changes to this code are in public domain. Please note, other licences may apply to the file.
+// Authors and copyright holders give permission for following:
+//
+// 1. Redistribution and use in source and binary forms WITHOUT modification.
+//
+// 2. Modification of the source form for your own personal use.
+//
+// As long as the following conditions are met:
+//
+// 3. You must not distribute modified copies of the work to third parties. This includes
+//    posting the work online, or hosting copies of the modified work for download.
+//
+// 4. Any derivative version of this work is also covered by this license, including point 8.
+//
+// 5. Neither the name of the copyright holders nor the names of the authors may be
+//    used to endorse or promote products derived from this software without specific
+//    prior written permission.
+//
+// 6. You agree that this licence is governed by and shall be construed in accordance
+//    with the laws of England and Wales.
+//
+// 7. You agree to submit all disputes arising out of or in connection with this licence
+//    to the exclusive jurisdiction of the Courts of England and Wales.
+//
+// Authors and copyright holders agree that:
+//
+// 8. This licence expires and the work covered by it is released into the
+//    public domain on 1st of February 2020
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -156,8 +182,8 @@ inline void mem_load(cn_sptr& lpad, size_t i, uint8x16_t& x0, uint8x16_t& x1, ui
 	x7 ^= vld1q_u8(lpad.as_byte() + i + 112);
 }
 
-template <size_t MEMORY, size_t ITER, size_t POW_VER>
-void cn_slow_hash<MEMORY, ITER, POW_VER>::implode_scratchpad_hard()
+template <size_t MEMORY, size_t ITER, size_t VERSION>
+void cn_slow_hash<MEMORY, ITER, VERSION>::implode_scratchpad_hard()
 {
 	uint8x16_t x0, x1, x2, x3, x4, x5, x6, x7;
 	uint8x16_t k0, k1, k2, k3, k4, k5, k6, k7, k8, k9;
@@ -186,11 +212,11 @@ void cn_slow_hash<MEMORY, ITER, POW_VER>::implode_scratchpad_hard()
 		aes_round10(x6, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9);
 		aes_round10(x7, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9);
 
-		if(POW_VER > 0)
+		if(VERSION > 0)
 			xor_shift(x0, x1, x2, x3, x4, x5, x6, x7);
 	}
 
-	for(size_t i = 0; POW_VER > 0 && i < MEMORY; i += 128)
+	for(size_t i = 0; VERSION > 0 && i < MEMORY; i += 128)
 	{
 		mem_load(lpad, i, x0, x1, x2, x3, x4, x5, x6, x7);
 
@@ -206,7 +232,7 @@ void cn_slow_hash<MEMORY, ITER, POW_VER>::implode_scratchpad_hard()
 		xor_shift(x0, x1, x2, x3, x4, x5, x6, x7);
 	}
 
-	for(size_t i = 0; POW_VER > 0 && i < 16; i++)
+	for(size_t i = 0; VERSION > 0 && i < 16; i++)
 	{
 		aes_round10(x0, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9);
 		aes_round10(x1, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9);
@@ -230,8 +256,8 @@ void cn_slow_hash<MEMORY, ITER, POW_VER>::implode_scratchpad_hard()
 	vst1q_u8(spad.as_byte() + 176, x7);
 }
 
-template <size_t MEMORY, size_t ITER, size_t POW_VER>
-void cn_slow_hash<MEMORY, ITER, POW_VER>::explode_scratchpad_hard()
+template <size_t MEMORY, size_t ITER, size_t VERSION>
+void cn_slow_hash<MEMORY, ITER, VERSION>::explode_scratchpad_hard()
 {
 	uint8x16_t x0, x1, x2, x3, x4, x5, x6, x7;
 	uint8x16_t k0, k1, k2, k3, k4, k5, k6, k7, k8, k9;
@@ -247,7 +273,7 @@ void cn_slow_hash<MEMORY, ITER, POW_VER>::explode_scratchpad_hard()
 	x6 = vld1q_u8(spad.as_byte() + 160);
 	x7 = vld1q_u8(spad.as_byte() + 176);
 
-	for(size_t i = 0; POW_VER > 0 && i < 16; i++)
+	for(size_t i = 0; VERSION > 0 && i < 16; i++)
 	{
 		aes_round10(x0, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9);
 		aes_round10(x1, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9);
@@ -295,31 +321,8 @@ inline uint8x16_t _mm_set_epi64x(const uint64_t a, const uint64_t b)
 	return vreinterpretq_u8_u64(vcombine_u64(vcreate_u64(b), vcreate_u64(a)));
 }
 
-#define vreinterpretq_s32_m128i(x) \
-	(x)
-
-#define _mm_shuffle_epi32_default(a, imm) \
-({ \
-	int32x4_t ret; \
-	ret = vmovq_n_s32(vgetq_lane_s32(vreinterpretq_s32_m128i(a), (imm) & 0x3)); \
-	ret = vsetq_lane_s32(vgetq_lane_s32(vreinterpretq_s32_m128i(a), ((imm) >> 2) & 0x3), ret, 1); \
-	ret = vsetq_lane_s32(vgetq_lane_s32(vreinterpretq_s32_m128i(a), ((imm) >> 4) & 0x3), ret, 2); \
-	ret = vsetq_lane_s32(vgetq_lane_s32(vreinterpretq_s32_m128i(a), ((imm) >> 6) & 0x3), ret, 3); \
-	vreinterpretq_m128i_s32(ret); \
-})
-
-static inline float64x2_t vcvtq_f64_s64(int64x2_t a)
-{
-  float64x2_t result;
-  __asm__("scvtf %0.2d, %1.2d"
-    : "=w"(result)
-    : "w"(a)
-    : /* No clobbers */);
-  return result;
-}
-
-template <size_t MEMORY, size_t ITER, size_t POW_VER>
-void cn_slow_hash<MEMORY, ITER, POW_VER>::hardware_hash(const void* in, size_t len, void* out)
+template <size_t MEMORY, size_t ITER, size_t VERSION>
+void cn_slow_hash<MEMORY, ITER, VERSION>::hardware_hash(const void* in, size_t len, void* out)
 {
 	keccak((const uint8_t*)in, len, spad.as_byte(), 200);
 
@@ -339,20 +342,8 @@ void cn_slow_hash<MEMORY, ITER, POW_VER>::hardware_hash(const void* in, size_t l
 	{
 		uint8x16_t cx;
 		cx = vld1q_u8(scratchpad_ptr(idx0).as_byte());
-		uint8x16_t ax0 = _mm_set_epi64x(ah0, al0);
-		cx = vaesmcq_u8(vaeseq_u8(cx, zero)) ^ ax0;
-		if (POW_VER == 3)
-		{
-			while ((vheor_s32(cx) & 0xf) != 0)
-			{
-				cx = cx ^ bx0;
-        float64x2_t da = vcvtq_f64_s64(cx);
-        float64x2_t db = vcvtq_f64_s64(_mm_shuffle_epi32_default(cx, _MM_SHUFFLE(0, 1, 2, 3)));
-				da = vmulq_f32(da, db);
-				cx = vaesmcq_u8(vaeseq_u8(vld1q_dup_u64(da), zero)), ax0);
-			}
-			cx = vaesmcq_u8(vaeseq_u8(cx, zero)) ^ ax0;
-		}
+
+		cx = vaesmcq_u8(vaeseq_u8(cx, zero)) ^ _mm_set_epi64x(ah0, al0);
 
 		vst1q_u8(scratchpad_ptr(idx0).as_byte(), bx0 ^ cx);
 
@@ -373,7 +364,7 @@ void cn_slow_hash<MEMORY, ITER, POW_VER>::hardware_hash(const void* in, size_t l
 		al0 ^= cl;
 		idx0 = al0;
 
-		if(POW_VER > 0 && POW_VER < 3)
+		if(VERSION > 0)
 		{
 			int64_t n = scratchpad_ptr(idx0).as_qword(0);
 			int32_t d = scratchpad_ptr(idx0).as_dword(2);
@@ -499,8 +490,8 @@ inline void single_comupte_wrap(const float32x4_t& n0, const float32x4_t& n1, co
 	out = veorq_s32(out, r);
 }
 
-template <size_t MEMORY, size_t ITER, size_t POW_VER>
-void cn_slow_hash<MEMORY, ITER, POW_VER>::inner_hash_3()
+template <size_t MEMORY, size_t ITER, size_t VERSION>
+void cn_slow_hash<MEMORY, ITER, VERSION>::inner_hash_3()
 {
 	uint32_t s = spad.as_dword(0) >> 8;
 	cn_sptr idx0 = scratchpad_ptr(s, 0);
@@ -580,8 +571,8 @@ void cn_slow_hash<MEMORY, ITER, POW_VER>::inner_hash_3()
 }
 
 #if defined(__aarch64__)
-template <size_t MEMORY, size_t ITER, size_t POW_VER>
-void cn_slow_hash<MEMORY, ITER, POW_VER>::hardware_hash_3(const void* in, size_t len, void* pout)
+template <size_t MEMORY, size_t ITER, size_t VERSION>
+void cn_slow_hash<MEMORY, ITER, VERSION>::hardware_hash_3(const void* in, size_t len, void* pout)
 {
 	keccak((const uint8_t*)in, len, spad.as_byte(), 200);
 
@@ -594,8 +585,8 @@ void cn_slow_hash<MEMORY, ITER, POW_VER>::hardware_hash_3(const void* in, size_t
 }
 #endif
 
-template <size_t MEMORY, size_t ITER, size_t POW_VER>
-void cn_slow_hash<MEMORY, ITER, POW_VER>::software_hash_3(const void* in, size_t len, void* pout)
+template <size_t MEMORY, size_t ITER, size_t VERSION>
+void cn_slow_hash<MEMORY, ITER, VERSION>::software_hash_3(const void* in, size_t len, void* pout)
 {
 	keccak((const uint8_t*)in, len, spad.as_byte(), 200);
 
@@ -610,5 +601,4 @@ void cn_slow_hash<MEMORY, ITER, POW_VER>::software_hash_3(const void* in, size_t
 template class cn_v1_hash_t;
 template class cn_v2_hash_t;
 template class cn_v3_hash_t;
-template class cn_v4_hash_t;
 #endif

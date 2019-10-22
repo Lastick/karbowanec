@@ -3,7 +3,33 @@
 // Portions of this file are available under BSD-3 license. Please see ORIGINAL-LICENSE for details
 // All rights reserved.
 //
-// Ryo changes to this code are in public domain. Please note, other licences may apply to the file.
+// Authors and copyright holders give permission for following:
+//
+// 1. Redistribution and use in source and binary forms WITHOUT modification.
+//
+// 2. Modification of the source form for your own personal use.
+//
+// As long as the following conditions are met:
+//
+// 3. You must not distribute modified copies of the work to third parties. This includes
+//    posting the work online, or hosting copies of the modified work for download.
+//
+// 4. Any derivative version of this work is also covered by this license, including point 8.
+//
+// 5. Neither the name of the copyright holders nor the names of the authors may be
+//    used to endorse or promote products derived from this software without specific
+//    prior written permission.
+//
+// 6. You agree that this licence is governed by and shall be construed in accordance
+//    with the laws of England and Wales.
+//
+// 7. You agree to submit all disputes arising out of or in connection with this licence
+//    to the exclusive jurisdiction of the Courts of England and Wales.
+//
+// Authors and copyright holders agree that:
+//
+// 8. This licence expires and the work covered by it is released into the
+//    public domain on 1st of February 2020
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -130,8 +156,8 @@ inline void double_comupte_wrap(const __m256& n0, const __m256& n1, const __m256
 	out = _mm256_xor_si256(out, r);
 }
 
-template <size_t MEMORY, size_t ITER, size_t POW_VER>
-void cn_slow_hash<MEMORY, ITER, POW_VER>::inner_hash_3_avx()
+template <size_t MEMORY, size_t ITER, size_t VERSION>
+void cn_slow_hash<MEMORY, ITER, VERSION>::inner_hash_3_avx()
 {
 	uint32_t s = spad.as_dword(0) >> 8;
 	cn_sptr idx0 = scratchpad_ptr(s, 0);
@@ -207,5 +233,4 @@ void cn_slow_hash<MEMORY, ITER, POW_VER>::inner_hash_3_avx()
 template class cn_v1_hash_t;
 template class cn_v2_hash_t;
 template class cn_v3_hash_t;
-template class cn_v4_hash_t;
 #endif
