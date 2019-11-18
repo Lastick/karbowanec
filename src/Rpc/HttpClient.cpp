@@ -67,9 +67,13 @@ HttpClient::~HttpClient() {
 }
 
 void HttpClient::request(HttpRequest &req, HttpResponse &res) {
+  req.addHeader("Connection", "Keep-Alive");
   if (!m_connected) {
     connect();
   }
+
+  bool conn_close = false;
+
   req.setHost(m_address);
   if (this->m_ssl_enable) {
     try {
@@ -99,21 +103,24 @@ void HttpClient::request(HttpRequest &req, HttpResponse &res) {
       char resp_buff[resp_buff_size];
       const char *header_end_sep = "\r\n\r\n";
       const char *content_lenght = "Content-Length";
+      const char *connection_close = "Connection: close";
       const char *content_lenght_end_sep = "\r\n";
       bool header_found = false;
       size_t stream_len = 0;
       while (true) {
-        resp_size = this->m_ssl_sock->read_some(boost::asio::buffer((char *) resp_buff, resp_buff_size));
+        memset(resp_buff, 0x00, resp_buff_size);
+        resp_size = this->m_ssl_sock->read_some(boost::asio::buffer((char *) resp_buff, resp_buff_size - 1));
         resp_size_full += resp_size;
         if (resp_size > 0) {
           resp_data.resize(resp_size_full);
           memcpy(resp_data.data() + resp_size_full - resp_size, resp_buff, resp_size);
           if (!header_found) {
             std::string data = std::string((char *) resp_data.data());
+            data.push_back(0x00);
             size_t header_end = data.find(header_end_sep);
             if (header_end != std::string::npos) {
               header_found = true;
-              data.resize(header_end);
+              data.resize(header_end + 2);
               data.push_back(0x00);
               size_t content_lenght_start = data.find(content_lenght);
               size_t content_lenght_end = data.find(content_lenght_end_sep, content_lenght_start);
@@ -122,15 +129,21 @@ void HttpClient::request(HttpRequest &req, HttpResponse &res) {
                                    content_lenght_end - content_lenght_start - strlen(content_lenght) - 2).c_str(), "%zu", &stream_len);
                 stream_len += header_end + 4;
               }
+              size_t connection_close_start = data.find(connection_close);
+              size_t connection_close_end = data.find(content_lenght_end_sep, content_lenght_start);
+              if (connection_close_start != std::string::npos && connection_close_end != std::string::npos) {
+                conn_close = true;
+              }
             }
           }
-          if (resp_size_full >= stream_len - 1 && header_found) break;
+          if (resp_size_full >= stream_len && header_found) break;
         } else {
           break;
         }
       }
       streambuf.setRespdata(resp_data);
       parser.receiveResponse(stream, res);
+      if (conn_close) disconnect();
     } catch (const std::exception &) {
       disconnect();
       throw;
@@ -160,8 +173,14 @@ void HttpClient::connect() {
       this->m_ssl_sock.reset(new boost::asio::ssl::stream<tcp::socket> (this->m_io_service, std::ref(ctx)));
       tcp::resolver resolver(this->m_io_service);
       tcp::resolver::query query(this->m_address, std::to_string(this->m_port));
+      int32_t timeout = 60000;
+      unsigned long val = 1;
       boost::asio::connect(this->m_ssl_sock->lowest_layer(), resolver.resolve(query));
+      setsockopt(this->m_ssl_sock->lowest_layer().native_handle(), SOL_SOCKET, SO_KEEPALIVE, (char*)&val, sizeof(val));
+      setsockopt(this->m_ssl_sock->lowest_layer().native_handle(), SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+      setsockopt(this->m_ssl_sock->lowest_layer().native_handle(), SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
       this->m_ssl_sock->lowest_layer().set_option(tcp::no_delay(true));
+      this->m_ssl_sock->lowest_layer().set_option(boost::asio::socket_base::keep_alive(true));
       this->m_ssl_sock->set_verify_mode(boost::asio::ssl::verify_peer);
       this->m_ssl_sock->set_verify_callback(boost::asio::ssl::rfc2818_verification(this->m_address));
       this->m_ssl_sock->handshake(boost::asio::ssl::stream_base::client);
