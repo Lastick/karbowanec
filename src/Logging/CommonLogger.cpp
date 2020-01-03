@@ -57,7 +57,42 @@ std::string formatPattern(const std::string& pattern, const std::string& categor
 
 void CommonLogger::operator()(const std::string& category, Level level, boost::posix_time::ptime time, const std::string& body) {
   if (level <= logLevel && disabledCategories.count(category) == 0) {
-    std::string body2 = body;
+    std::string body2;
+    const char *end = "\n";
+    size_t last_pos = 0;
+    while (true) {
+      size_t pos = body.find(end, last_pos);
+      std::string buff = body.substr(last_pos, pos - last_pos);
+      std::string buff_hex;
+      bool is_bool = false;
+      for (size_t i = 0; i < buff.size(); i++) {
+        if (buff[i] > 126 || buff[i] < 20) {
+          is_bool = true;
+          break;
+        }
+      }
+      if (is_bool) {
+        size_t n = 0;
+        for (const char &el : buff) {
+          std::stringstream stream;
+          stream << std::hex << (el & 0xFF);
+          if ((unsigned char) el <= 0xF) buff_hex += "0";
+          buff_hex += stream.str();
+          buff_hex += " ";
+          n++;
+          if (n == 15) {
+            buff_hex += end;
+            n = 0;
+          }
+        }
+        body2 += buff_hex;
+      } else {
+        body2 += buff;
+      }
+      last_pos = pos + 1;
+      if (pos == std::string::npos) break;
+      else body2 += end;
+    }
     if (!pattern.empty()) {
       size_t insertPos = 0;
       if (!body2.empty() && body2[0] == ILogger::COLOR_DELIMETER) {
