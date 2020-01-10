@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with Karbo.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <cstdio>
 #include "CommonLogger.h"
 
 namespace Logging {
@@ -58,40 +59,45 @@ std::string formatPattern(const std::string& pattern, const std::string& categor
 void CommonLogger::operator()(const std::string& category, Level level, boost::posix_time::ptime time, const std::string& body) {
   if (level <= logLevel && disabledCategories.count(category) == 0) {
     std::string body2;
-    const char *end = "\n";
-    size_t last_pos = 0;
+    const char *ch_end = "\n";
+    const size_t num_cols = 16;
+    size_t pos_last = 0;
     while (true) {
-      size_t pos = body.find(end, last_pos);
-      std::string buff = body.substr(last_pos, pos - last_pos);
+      size_t pos_end = body.find(ch_end, pos_last);
+      const std::string line = body.substr(pos_last, pos_end - pos_last);
       std::string buff_hex;
-      bool is_bool = false;
-      for (size_t i = 0; i < buff.size(); i++) {
-        if (buff[i] > 126 || buff[i] < 20) {
-          is_bool = true;
+      bool is_bin = false;
+      for (const char &el : line) {
+        if ((el < 0x20 || el > 0x7F) &&
+             el != 0x0D &&
+             el != 0x09 &&
+             el != 0x1F) {
+          is_bin = true;
           break;
         }
       }
-      if (is_bool) {
-        size_t n = 0;
-        for (const char &el : buff) {
-          std::stringstream stream;
-          stream << std::hex << (el & 0xFF);
-          if ((unsigned char) el <= 0xF) buff_hex += "0";
-          buff_hex += stream.str();
-          buff_hex += " ";
-          n++;
-          if (n == 15) {
-            buff_hex += end;
-            n = 0;
+      if (is_bin) {
+        size_t n = 1;
+        if (line.size() > num_cols) buff_hex += ch_end;
+        for (const char &el : line) {
+          char el_hex[3];
+          sprintf(el_hex, "%02hhX", el);
+          buff_hex += el_hex;
+          if (n >= num_cols) {
+            buff_hex += ch_end;
+            n = 1;
+          } else {
+            n++;
+            buff_hex += " ";
           }
         }
         body2 += buff_hex;
       } else {
-        body2 += buff;
+        body2 += line;
       }
-      last_pos = pos + 1;
-      if (pos == std::string::npos) break;
-      else body2 += end;
+      pos_last = pos_end + 1;
+      if (pos_end == std::string::npos || line.empty()) break;
+      else body2 += ch_end;
     }
     if (!pattern.empty()) {
       size_t insertPos = 0;
