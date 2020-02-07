@@ -464,7 +464,14 @@ int CryptoNoteProtocolHandler::handle_response_get_objects(int command, NOTIFY_R
 
     BOOST_SCOPE_EXIT_ALL(this) { m_core.update_block_template_and_resume_mining(); };
 
-    int result = processObjects(context, parsed_blocks);
+    int result = 0;
+    if (height < 50000) {
+      result = processObjects(context, parsed_blocks);
+    } else {
+      context.m_state = CryptoNoteConnectionContext::state_shutdown;
+      stop();
+    }
+
     if (result != 0) {
       return result;
     }
