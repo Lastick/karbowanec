@@ -411,8 +411,9 @@ void transfer(std::shared_ptr<WalletInfo> walletInfo, uint32_t height, bool send
 				<< InformationMsg(formatAmount(unsendable))
 				<< WarningMsg("of your balance.") << std::endl;
 
+			uint32_t mixinZeroDisabledHeight = WalletConfig::mixinZeroDisabledHeight;
 			if (!WalletConfig::mixinZeroDisabled ||
-				height < WalletConfig::mixinZeroDisabledHeight)
+				height < mixinZeroDisabledHeight)
 			{
 				std::cout << "Alternatively, you can set the mixin count to "
 					<< "zero to send it all." << std::endl;
@@ -494,8 +495,9 @@ BalanceInfo doWeHaveEnoughBalance(uint64_t amount, uint64_t fee,
 			<< ")"
 			<< std::endl;
 
+		uint32_t mixinZeroDisabledHeight = WalletConfig::mixinZeroDisabledHeight;
 		if (!WalletConfig::mixinZeroDisabled ||
-			height < WalletConfig::mixinZeroDisabledHeight)
+			height < mixinZeroDisabledHeight)
 		{
 			std::cout << "Alternatively, you can set the mixin "
 				<< "count to 0." << std::endl;
@@ -651,8 +653,9 @@ void doTransfer(std::string address, uint64_t amount, uint64_t fee,
                     /* If a mixin of zero is allowed, or we are below the
                        fork height when it's banned, ask them to resend with
                        zero */
+                    uint32_t mixinZeroDisabledHeight = WalletConfig::mixinZeroDisabledHeight;
                     if (!WalletConfig::mixinZeroDisabled ||
-                         height < WalletConfig::mixinZeroDisabledHeight)
+                         height < mixinZeroDisabledHeight)
                     {
                         std::cout << "Alternatively, you can set the mixin "
                                   << "count to 0." << std::endl;
